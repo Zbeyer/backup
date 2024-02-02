@@ -1,34 +1,41 @@
 @echo off
+setlocal enabledelayedexpansion
+
 @REM set source, where backup comes from
-set source_dir=C:\SourceDirectory
-@REM set desination, where backups are store
-set destination_dir=D:\DestinationDirectory
+set source_dir=C:\palworld\Pal\Saved\SaveGames\
+@REM set destination, where backups are stored
+set destination_dir=C:\palbackup\
 @REM set max size 
-set max_value=5
+set "max_name=72"
 
-@REM make copy 
+echo Going to %destination_dir%
+rem go to destination
+cd /d "%destination_dir%"
+
+echo Getting list of folders in reverse order
+rem Retrieve the list of folders in reverse order
+for /f "tokens=*" %%F in ('dir /b /ad /o-n "%destination_dir%"') do (
+    set "folders=!folders! "%%F""
+)
+
+echo Renaming...
+rem Loop through the folders in reverse order and rename them by increasing their names by 1
+for %%F in (%folders%) do (
+    set "folder_name=%%~nxF"
+    set /a "new_name=folder_name + 1"
+    ren "%%F" "!new_name!"
+)
+
+echo Making copy...
+rem make a copy 
 xcopy "%source_dir%" "%destination_dir%" /s /e /y
-@REM go to destination
-cd %destination_dir%
 
-rem Increase folder names in reverse order
-for /f "tokens=*" %%F in ('dir /ad /b /o-n "%destination_dir%"') do (
-    set "folder_name=%%F"
-    
-    rem Extract the numeric part of the folder name
-    for /f "tokens=2 delims=Folder" %%N in ("%%F") do set /a "new_number=%%N + 1"
-
-    rem Construct the new folder name
-    set "new_name=!new_number!"
-
-    rem Rename the folder
-    ren "%destination_dir%\!folder_name!" "!new_name!"
-
-    rem Check the folder size and delete if it's above max
-    for /f %%A in ('dir /s /b "%destination_dir%\!new_name!" ^| find /c /v ""') do (
-        if %%A gtr %max_value% (
-            echo Deleting folder "!new_name!" as it's above 80.
-            rd /s /q "%destination_dir%\!new_name!"
-        )
+echo Deleting folders larger than %max_name%...
+rem Loop through the folders and delete those exceeding the maximum size
+for /d %%F in ("%destination_dir%*") do (
+    set "folder_name=%%~nxF"
+    if !folder_name! gtr %max_name% (
+        rd /s /q "%%F"
+        echo Deleted folder: %%F
     )
 )
